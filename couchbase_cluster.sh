@@ -76,9 +76,10 @@ done
 sleep 15
 
 # Setup initial cluster/initialize node
+IFS='_' read -r -a service_name <<<${services[0]}
 "$DOCKER" exec "${COUCHBASE_NODE_NAME}_0" couchbase-cli cluster-init --cluster ${cluster_url} --cluster-name "$COUCHBASE_CLUSTER_NAME" \
   --cluster-username "$COUCHBASE_ADMINISTRATOR_USERNAME" --cluster-password "$COUCHBASE_ADMINISTRATOR_PASSWORD" \
-  --services "${services[0]}" --cluster-ramsize "$MEMORY" --cluster-index-ramsize "$MEMORY" --cluster-fts-ramsize "$MEMORY" \
+  --services "${service_name[0]}" --cluster-ramsize "$MEMORY" --cluster-index-ramsize "$MEMORY" --cluster-fts-ramsize "$MEMORY" \
   --cluster-analytics-ramsize "$(($MEMORY * 2))" --cluster-eventing-ramsize "$MEMORY" --index-storage-setting default
 
 # Setup Bucket
@@ -98,12 +99,13 @@ docker_ip() {
 }
 
 for ((node = 1; node < $COUCHBASE_NODE_COUNT; ++node)); do
+  IFS='_' read -r -a service_name <<<${services[node]}
   "$DOCKER" exec "${COUCHBASE_NODE_NAME}_${node}" couchbase-cli server-add \
     --cluster $(docker_ip "${COUCHBASE_NODE_NAME}_0"):8091 \
     --username "$COUCHBASE_ADMINISTRATOR_USERNAME" --password "$COUCHBASE_ADMINISTRATOR_PASSWORD" \
     --server-add $(docker_ip "${COUCHBASE_NODE_NAME}_${node}"):8091 \
     --server-add-username "$COUCHBASE_ADMINISTRATOR_USERNAME" --server-add-password "$COUCHBASE_ADMINISTRATOR_PASSWORD" \
-    --services "${services[node]}"
+    --services "${service_name[0]}"
 done
 
 # Rebalance (needed to fully enable added nodes)
