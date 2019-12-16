@@ -99,13 +99,13 @@ docker_ip() {
 }
 
 for ((node = 1; node < $COUCHBASE_NODE_COUNT; ++node)); do
-  IFS='_' read -r -a service_name <<<${services[node]}
+  IFS='_' read -r -a servicename <<<${services[node]}
   "$DOCKER" exec "${COUCHBASE_NODE_NAME}_${node}" couchbase-cli server-add \
     --cluster $(docker_ip "${COUCHBASE_NODE_NAME}_0"):8091 \
     --username "$COUCHBASE_ADMINISTRATOR_USERNAME" --password "$COUCHBASE_ADMINISTRATOR_PASSWORD" \
     --server-add $(docker_ip "${COUCHBASE_NODE_NAME}_${node}"):8091 \
     --server-add-username "$COUCHBASE_ADMINISTRATOR_USERNAME" --server-add-password "$COUCHBASE_ADMINISTRATOR_PASSWORD" \
-    --services "${service_name[0]}"
+    --services "${servicename[0]}"
 done
 
 # Rebalance (needed to fully enable added nodes)
