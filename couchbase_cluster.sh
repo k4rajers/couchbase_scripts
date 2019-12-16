@@ -31,6 +31,14 @@ done
 # Use supplied parameters or try for sensible defaults
 : ${DOCKER:=docker}
 
+# create virtual network
+"$DOCKER" network rm "$COUCHBASE_NETWORK"
+"$DOCKER" network create --subnet 10.10.0.0/16 "$COUCHBASE_NETWORK"
+
+# create couchbase services array
+IFS=',' read -r -a services <<<$COUCHBASE_SERVICES
+: ${COUCHBASE_NODE_COUNT:=${#services[@]}}
+
 cluster_url="couchbase://127.0.0.1"
 
 read -r -d '' ports_script <<EOF || true
@@ -58,7 +66,9 @@ for ((node = 0; node < $COUCHBASE_NODE_COUNT; ++node)); do
   echo "Starting node ${COUCHBASE_NODE_NAME}_${node}"
   let offset=${node}*1000 || true
   ports=$(awk -v offset=$offset "$ports_script" <<<"${COUCHBASE_SERVER_PORTS}")
-  "$DOCKER" run -d --name "${COUCHBASE_NODE_NAME}_${node}" --network "$COUCHBASE_NETWORK" $ports couchbase
+  mkdir -p "/data/couchbase/${services[node]}"
+  "$DOCKER" run -d --name "${COUCHBASE_NODE_NAME}_${node}" --network "$COUCHBASE_NETWORK" $ports \
+    -v /data/couchbase/${services[node]}:/opt/couchbase/var couchbase
 done
 
 sleep 15
@@ -66,7 +76,7 @@ sleep 15
 # Setup initial cluster/initialize node
 "$DOCKER" exec "${COUCHBASE_NODE_NAME}_0" couchbase-cli cluster-init --cluster ${cluster_url} --cluster-name "$COUCHBASE_CLUSTER_NAME" \
   --cluster-username "$COUCHBASE_ADMINISTRATOR_USERNAME" --cluster-password "$COUCHBASE_ADMINISTRATOR_PASSWORD" \
-  --services ${COUCHBASE_SERVICES} --cluster-ramsize "$MEMORY" --cluster-index-ramsize "$MEMORY" --cluster-fts-ramsize "$MEMORY" \
+  --services "${services[node]}" --cluster-ramsize "$MEMORY" --cluster-index-ramsize "$MEMORY" --cluster-fts-ramsize "$MEMORY" \
   --cluster-analytics-ramsize "$MEMORY" --cluster-eventing-ramsize "$MEMORY" --index-storage-setting default
 
 # Setup Bucket
@@ -91,7 +101,7 @@ for ((node = 1; node < $COUCHBASE_NODE_COUNT; ++node)); do
     --username "$COUCHBASE_ADMINISTRATOR_USERNAME" --password "$COUCHBASE_ADMINISTRATOR_PASSWORD" \
     --server-add $(docker_ip "${COUCHBASE_NODE_NAME}_${node}"):8091 \
     --server-add-username "$COUCHBASE_ADMINISTRATOR_USERNAME" --server-add-password "$COUCHBASE_ADMINISTRATOR_PASSWORD" \
-    --services "$COUCHBASE_SERVICES"
+    --services "${services[node]}"
 done
 
 # Rebalance (needed to fully enable added nodes)
