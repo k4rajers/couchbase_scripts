@@ -65,7 +65,8 @@ EOF
 echo "creating services: ... ${services[@]} ..."
 
 mkdir -p "/data/couchbase/${services[0]}"
-$DOCKER" run -d --ulimit nofile=40960:40960 --ulimit core=100000000:100000000 --ulimit memlock=100000000:100000000 \
+ports="-p $p1-$p2:8091-8094 -p $p3:11210"
+"$DOCKER" run -d --ulimit nofile=40960:40960 --ulimit core=100000000:100000000 --ulimit memlock=100000000:100000000 \
   --name "${COUCHBASE_NODE_NAME}_0" -p 8091-8094:8091-8094 -p 11210:11210 \
   -v /data/couchbase/${services[0]}:/opt/couchbase/var couchbase
 
