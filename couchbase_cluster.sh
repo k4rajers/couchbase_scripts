@@ -62,6 +62,8 @@ read -r -d '' ports_script <<EOF || true
 }
 EOF
 
+echo "creating services: ... ${services[@]} ..."
+
 for ((node = 0; node < $COUCHBASE_NODE_COUNT; ++node)); do
   echo "Starting node ${COUCHBASE_NODE_NAME}_${node}"
   let offset=${node}*1000 || true
@@ -76,7 +78,7 @@ sleep 15
 # Setup initial cluster/initialize node
 "$DOCKER" exec "${COUCHBASE_NODE_NAME}_0" couchbase-cli cluster-init --cluster ${cluster_url} --cluster-name "$COUCHBASE_CLUSTER_NAME" \
   --cluster-username "$COUCHBASE_ADMINISTRATOR_USERNAME" --cluster-password "$COUCHBASE_ADMINISTRATOR_PASSWORD" \
-  --services "${services[node]}" --cluster-ramsize "$MEMORY" --cluster-index-ramsize "$MEMORY" --cluster-fts-ramsize "$MEMORY" \
+  --services "${services[0]}" --cluster-ramsize "$MEMORY" --cluster-index-ramsize "$MEMORY" --cluster-fts-ramsize "$MEMORY" \
   --cluster-analytics-ramsize "$MEMORY" --cluster-eventing-ramsize "$MEMORY" --index-storage-setting default
 
 # Setup Bucket
