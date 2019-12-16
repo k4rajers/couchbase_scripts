@@ -79,7 +79,7 @@ sleep 15
 "$DOCKER" exec "${COUCHBASE_NODE_NAME}_0" couchbase-cli cluster-init --cluster ${cluster_url} --cluster-name "$COUCHBASE_CLUSTER_NAME" \
   --cluster-username "$COUCHBASE_ADMINISTRATOR_USERNAME" --cluster-password "$COUCHBASE_ADMINISTRATOR_PASSWORD" \
   --services "${services[0]}" --cluster-ramsize "$MEMORY" --cluster-index-ramsize "$MEMORY" --cluster-fts-ramsize "$MEMORY" \
-  --cluster-analytics-ramsize "$MEMORY*2" --cluster-eventing-ramsize "$MEMORY" --index-storage-setting default
+  --cluster-analytics-ramsize "$(($MEMORY * 2))" --cluster-eventing-ramsize "$MEMORY" --index-storage-setting default
 
 # Setup Bucket
 "$DOCKER" exec "${COUCHBASE_NODE_NAME}_0" couchbase-cli bucket-create --cluster ${cluster_url} \
