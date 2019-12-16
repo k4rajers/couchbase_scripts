@@ -64,20 +64,29 @@ EOF
 
 echo "creating services: ... ${services[@]} ..."
 
+p1=8091
+p2=8094
+p3=11210
+mkdir -p "/data/couchbase/${services[0]}"
+ports="-p $p1-$p2:8091-8094 -p $p3:11210"
+"$DOCKER" run -d --ulimit nofile=40960:40960 --ulimit core=100000000:100000000 --ulimit memlock=100000000:100000000 \
+  --name "${COUCHBASE_NODE_NAME}_0" --network "$COUCHBASE_NETWORK" $ports \
+  -v /data/couchbase/${services[0]}:/opt/couchbase/var couchbase
+
 p0=11090
 p3=14209
-for ((node = 0; node < $COUCHBASE_NODE_COUNT; ++node)); do
+for ((node = 1; node < $COUCHBASE_NODE_COUNT; ++node)); do
   echo "Starting node ${COUCHBASE_NODE_NAME}_${node}"
   let offset=${node}*1000 || true
   # ports=$(awk -v offset=$offset "$ports_script" <<<"${COUCHBASE_SERVER_PORTS}")
-  p1=$(($p0 + 1))
-  p2=$(($p1 + 3))
-  p0=$p2
-  p3=$(($p3 + 1))
-  ports="-p $p1-$p2:8091-8094 -p $p3:11210"
+  # p1=$(($p0 + 1))
+  # p2=$(($p1 + 3))
+  # p0=$p2
+  # p3=$(($p3 + 1))
+  # ports="-p $p1-$p2:8091-8094 -p $p3:11210"
   mkdir -p "/data/couchbase/${services[node]}"
   "$DOCKER" run -d --ulimit nofile=40960:40960 --ulimit core=100000000:100000000 --ulimit memlock=100000000:100000000 \
-    --name "${COUCHBASE_NODE_NAME}_${node}" --network "$COUCHBASE_NETWORK" $ports \
+    --name "${COUCHBASE_NODE_NAME}_${node}" --network "$COUCHBASE_NETWORK" \
     -v /data/couchbase/${services[node]}:/opt/couchbase/var couchbase
 done
 
