@@ -39,7 +39,7 @@ done
 IFS=',' read -r -a services <<<$COUCHBASE_SERVICES
 : ${COUCHBASE_NODE_COUNT:=${#services[@]}}
 
-cluster_url="couchbase://127.0.0.1"
+cluster_url="couchbase://127.0.0.1:11091"
 
 read -r -d '' ports_script <<EOF || true
 {
