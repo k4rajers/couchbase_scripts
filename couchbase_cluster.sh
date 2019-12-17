@@ -73,11 +73,11 @@ for ((node = 0; node < $(($COUCHBASE_NODE_COUNT)); ++node)); do
   p2=$(($p1 + 3))
   p0=$p2
   p3=$(($p3 + 1))
-  ports="-p $p1-$p2:8091-8094 -p $p3:11210"
+  ports="$p1-$p2:8091-8094 -p $p3:11210"
   mkdir -p "/data/couchbase/${services[node]}"
   echo "Starting node ${COUCHBASE_NODE_NAME}_${node} with network: ${COUCHBASE_NETWORK} port_mapping: ${ports}"
   "$DOCKER" run -d --ulimit nofile=40960:40960 --ulimit core=100000000:100000000 --ulimit memlock=100000000:100000000 \
-    --name "${COUCHBASE_NODE_NAME}_${node}" --network "${COUCHBASE_NETWORK}" "${ports}" \
+    --name "${COUCHBASE_NODE_NAME}_${node}" --network "${COUCHBASE_NETWORK}" -p "${ports}" \
     -v /data/couchbase/${services[node]}:/opt/couchbase/var couchbase
 done
 
