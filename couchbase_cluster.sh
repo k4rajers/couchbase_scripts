@@ -39,7 +39,7 @@ done
 IFS=',' read -r -a services <<<$COUCHBASE_SERVICES
 : ${COUCHBASE_NODE_COUNT:=${#services[@]}}
 
-cluster_url="couchbase://127.0.0.1:11091"
+cluster_url="couchbase://127.0.0.1"
 
 read -r -d '' ports_script <<EOF || true
 {
@@ -66,42 +66,42 @@ echo "creating services: ... ${services[@]} ..."
 
 p0=11090
 p3=14209
-for ((node = 0; node < $(($COUCHBASE_NODE_COUNT - 1)); ++node)); do
-  echo "Starting node ${COUCHBASE_NODE_NAME}_${node}"
-  let offset=${node}*1000 || true
-  ports=$(awk -v offset=$offset "$ports_script" <<<"${COUCHBASE_SERVER_PORTS}")
+for ((node = 0; node < $(($COUCHBASE_NODE_COUNT)); ++node)); do
+  # let offset=${node}*1000 || true
+  # ports=$(awk -v offset=$offset "$ports_script" <<<"${COUCHBASE_SERVER_PORTS}")
   p1=$(($p0 + 1))
   p2=$(($p1 + 3))
   p0=$p2
   p3=$(($p3 + 1))
   ports="-p $p1-$p2:8091-8094 -p $p3:11210"
   mkdir -p "/data/couchbase/${services[node]}"
+  echo "Starting node ${COUCHBASE_NODE_NAME}_${node} with network: ${COUCHBASE_NETWORK} port_mapping: ${ports}"
   "$DOCKER" run -d --ulimit nofile=40960:40960 --ulimit core=100000000:100000000 --ulimit memlock=100000000:100000000 \
-    --name "${COUCHBASE_NODE_NAME}_${node}" --network "${COUCHBASE_NETWORK}" \
+    --name "${COUCHBASE_NODE_NAME}_${node}" --network "${COUCHBASE_NETWORK}" "${ports}" \
     -v /data/couchbase/${services[node]}:/opt/couchbase/var couchbase
 done
 
-mkdir -p "/data/couchbase/${services[-1]}"
-"$DOCKER" run -d --ulimit nofile=40960:40960 --ulimit core=100000000:100000000 --ulimit memlock=100000000:100000000 \
-  --name "${COUCHBASE_NODE_NAME}_$(($COUCHBASE_NODE_COUNT - 1))" -p 11091-11094:8091-8094 -p 11210:11210 --network "${COUCHBASE_NETWORK}" \
-  -v /data/couchbase/${services[-1]}:/opt/couchbase/var couchbase
+# mkdir -p "/data/couchbase/${services[-1]}"
+# "$DOCKER" run -d --ulimit nofile=40960:40960 --ulimit core=100000000:100000000 --ulimit memlock=100000000:100000000 \
+#   --name "${COUCHBASE_NODE_NAME}_$(($COUCHBASE_NODE_COUNT - 1))" -p 11091-11094:8091-8094 -p 11210:11210 --network "${COUCHBASE_NETWORK}" \
+#   -v /data/couchbase/${services[-1]}:/opt/couchbase/var couchbase
 
 sleep 15
 
 # Setup initial cluster/initialize node
-IFS='_' read -r -a service_name <<<${services[-1]}
-"$DOCKER" exec "${COUCHBASE_NODE_NAME}_$(($COUCHBASE_NODE_COUNT - 1))" couchbase-cli cluster-init --cluster ${cluster_url} --cluster-name "$COUCHBASE_CLUSTER_NAME" \
+IFS='_' read -r -a service_name <<<${services[0]}
+"$DOCKER" exec "${COUCHBASE_NODE_NAME}_0" couchbase-cli cluster-init --cluster ${cluster_url} --cluster-name "$COUCHBASE_CLUSTER_NAME" \
   --cluster-username "$COUCHBASE_ADMINISTRATOR_USERNAME" --cluster-password "$COUCHBASE_ADMINISTRATOR_PASSWORD" \
   --services "${service_name[0]}" --cluster-ramsize "$MEMORY" --cluster-index-ramsize "$MEMORY" --cluster-fts-ramsize "$MEMORY" \
   --cluster-analytics-ramsize "$(($MEMORY * 2))" --cluster-eventing-ramsize "$MEMORY" --index-storage-setting default
 
 # Setup Bucket
-"$DOCKER" exec "${COUCHBASE_NODE_NAME}_$(($COUCHBASE_NODE_COUNT - 1))" couchbase-cli bucket-create --cluster ${cluster_url} \
+"$DOCKER" exec "${COUCHBASE_NODE_NAME}_0" couchbase-cli bucket-create --cluster ${cluster_url} \
   --username "$COUCHBASE_ADMINISTRATOR_USERNAME" --password "$COUCHBASE_ADMINISTRATOR_PASSWORD" \
   --bucket "$COUCHBASE_BUCKET" --bucket-type couchbase --bucket-ramsize "$MEMORY_BUCKET"
 
 # Setup RBAC user using CLI
-"$DOCKER" exec "${COUCHBASE_NODE_NAME}_$(($COUCHBASE_NODE_COUNT - 1))" couchbase-cli user-manage --cluster ${cluster_url} \
+"$DOCKER" exec "${COUCHBASE_NODE_NAME}_0" couchbase-cli user-manage --cluster ${cluster_url} \
   --username "$COUCHBASE_ADMINISTRATOR_USERNAME" --password "$COUCHBASE_ADMINISTRATOR_PASSWORD" \
   --set --rbac-username "$COUCHBASE_RBAC_USERNAME" --rbac-password "$COUCHBASE_RBAC_PASSWORD" \
   --rbac-name "$COUCHBASE_RBAC_NAME" --roles "$COUCHBASE_RBAC_ROLES" --auth-domain local
@@ -111,10 +111,10 @@ docker_ip() {
   "$DOCKER" inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$@"
 }
 
-for ((node = 0; node < $(($COUCHBASE_NODE_COUNT - 1)); ++node)); do
+for ((node = 1; node < $(($COUCHBASE_NODE_COUNT)); ++node)); do
   IFS='_' read -r -a servicename <<<${services[node]}
   "$DOCKER" exec "${COUCHBASE_NODE_NAME}_${node}" couchbase-cli server-add \
-    --cluster $(docker_ip "${COUCHBASE_NODE_NAME}_$(($COUCHBASE_NODE_COUNT - 1))"):8091 \
+    --cluster $(docker_ip "${COUCHBASE_NODE_NAME}_0"):8091 \
     --username "$COUCHBASE_ADMINISTRATOR_USERNAME" --password "$COUCHBASE_ADMINISTRATOR_PASSWORD" \
     --server-add $(docker_ip "${COUCHBASE_NODE_NAME}_${node}"):8091 \
     --server-add-username "$COUCHBASE_ADMINISTRATOR_USERNAME" --server-add-password "$COUCHBASE_ADMINISTRATOR_PASSWORD" \
@@ -122,6 +122,6 @@ for ((node = 0; node < $(($COUCHBASE_NODE_COUNT - 1)); ++node)); do
 done
 
 # Rebalance (needed to fully enable added nodes)
-"$DOCKER" exec "${COUCHBASE_NODE_NAME}_$(($COUCHBASE_NODE_COUNT - 1))" couchbase-cli rebalance --cluster ${cluster_url} \
+"$DOCKER" exec "${COUCHBASE_NODE_NAME}_0" couchbase-cli rebalance --cluster ${cluster_url} \
   --username "$COUCHBASE_ADMINISTRATOR_USERNAME" --password "$COUCHBASE_ADMINISTRATOR_PASSWORD" \
   --no-wait
