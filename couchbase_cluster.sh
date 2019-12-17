@@ -64,6 +64,8 @@ EOF
 
 echo "creating services: ... ${services[@]} ..."
 
+rm -rf "/data/couchbase"
+
 p0=11090
 p3=14209
 for ((node = 0; node < $(($COUCHBASE_NODE_COUNT)); ++node)); do
