@@ -89,10 +89,10 @@ mkdir -p "/data/couchbase/${services[-1]}"
 sleep 15
 
 # Setup initial cluster/initialize node
-IFS='_' read -r -a service_name <<<${services[0]}
+IFS='_' read -r -a service_name <<<${services[-1]}
 "$DOCKER" exec "${COUCHBASE_NODE_NAME}_0" couchbase-cli cluster-init --cluster ${cluster_url} --cluster-name "$COUCHBASE_CLUSTER_NAME" \
   --cluster-username "$COUCHBASE_ADMINISTRATOR_USERNAME" --cluster-password "$COUCHBASE_ADMINISTRATOR_PASSWORD" \
-  --services "${service_name[0]}" --cluster-ramsize "$MEMORY" --cluster-index-ramsize "$MEMORY" --cluster-fts-ramsize "$MEMORY" \
+  --services "${service_name[-1]}" --cluster-ramsize "$MEMORY" --cluster-index-ramsize "$MEMORY" --cluster-fts-ramsize "$MEMORY" \
   --cluster-analytics-ramsize "$(($MEMORY * 2))" --cluster-eventing-ramsize "$MEMORY" --index-storage-setting default
 
 # Setup Bucket
