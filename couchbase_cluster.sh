@@ -78,13 +78,13 @@ for ((node = 0; node < "$(($COUCHBASE_NODE_COUNT - 1))"; ++node)); do
   mkdir -p "/data/couchbase/${services[node]}"
   "$DOCKER" run -d --ulimit nofile=40960:40960 --ulimit core=100000000:100000000 --ulimit memlock=100000000:100000000 \
     --name "${COUCHBASE_NODE_NAME}_${node}" \
-    -v /data/couchbase/${services[node]}:/opt/couchbase/var couchbase
+    -v /data/couchbase/${services[node]}:/opt/couchbase/var couchbase --network "${COUCHBASE_NETWORK}"
 done
 
 mkdir -p "/data/couchbase/${services[-1]}"
 "$DOCKER" run -d --ulimit nofile=40960:40960 --ulimit core=100000000:100000000 --ulimit memlock=100000000:100000000 \
   --name "${COUCHBASE_NODE_NAME}_$(($COUCHBASE_NODE_COUNT - 1))" -p 8091-8094:8091-8094 -p 11210:11210 \
-  -v /data/couchbase/${services[-1]}:/opt/couchbase/var couchbase
+  -v /data/couchbase/${services[-1]}:/opt/couchbase/var couchbase --network "${COUCHBASE_NETWORK}"
 
 sleep 15
 
