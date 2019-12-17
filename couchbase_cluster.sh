@@ -32,8 +32,8 @@ done
 : ${DOCKER:=docker}
 
 # create virtual network
-"$DOCKER" network rm "$COUCHBASE_NETWORK"
-"$DOCKER" network create --subnet 10.10.0.0/16 "$COUCHBASE_NETWORK"
+# "$DOCKER" network rm "$COUCHBASE_NETWORK"
+# "$DOCKER" network create --subnet 10.10.0.0/16 "$COUCHBASE_NETWORK"
 
 # create couchbase services array
 IFS=',' read -r -a services <<<$COUCHBASE_SERVICES
