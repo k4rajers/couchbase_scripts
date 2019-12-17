@@ -83,7 +83,7 @@ done
 
 mkdir -p "/data/couchbase/${services[-1]}"
 "$DOCKER" run -d --ulimit nofile=40960:40960 --ulimit core=100000000:100000000 --ulimit memlock=100000000:100000000 \
-  --name "${COUCHBASE_NODE_NAME}_$(($COUCHBASE_NODE_COUNT - 1))" -p 8091-8094:8091-8094 -p 11210:11210 --network "${COUCHBASE_NETWORK}" \
+  --name "${COUCHBASE_NODE_NAME}_$(($COUCHBASE_NODE_COUNT - 1))" -p 11091-11094:8091-8094 -p 11210:11210 --network "${COUCHBASE_NETWORK}" \
   -v /data/couchbase/${services[-1]}:/opt/couchbase/var couchbase
 
 sleep 15
